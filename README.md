@@ -1,4 +1,4 @@
-# boshra_maman
+# badraghe
 
 
 
@@ -15,14 +15,14 @@ Already a pro? Just edit this README.md and make it your own. Want to make it ea
 
 ```
 cd existing_repo
-git remote add origin https://hamgit.ir/dngi2005/boshra_maman.git
+git remote add origin https://hamgit.ir/dngi2005/badraghe.git
 git branch -M main
 git push -uf origin main
 ```
 
 ## Integrate with your tools
 
-- [ ] [Set up project integrations](https://hamgit.ir/dngi2005/boshra_maman/-/settings/integrations)
+- [ ] [Set up project integrations](https://hamgit.ir/dngi2005/badraghe/-/settings/integrations)
 
 ## Collaborate with your team
 

@@ -2,7 +2,7 @@
 
 ![Badraghe Logo](./assets/badraghe-logo.png)
 
-Badraghe is a comprehensive online booking platform that allows users to search, reserve, and manage tickets seamlessly. Inspired by industry giants like Alibaba, it offers a real-time, secure, and flexible reservation system that adapts to users' needs.
+**Badraghe** is a comprehensive online booking platform that allows users to search, reserve, and manage tickets seamlessly. Inspired by industry giants like Alibaba, it offers a real-time, secure, and flexible reservation system that adapts to users' needs.
 
 
 ![SystemDesign](./assets/Badraghe-systemdesign.jpg)

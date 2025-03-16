@@ -86,7 +86,15 @@ CREATE TABLE service_providers (
     address VARCHAR(255),
     website_url TEXT,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+
+    CONSTRAINT chk_contact_email_format CHECK (
+        contact_email REGEXP '^[A-Za-z0-9._-]+@[A-Za-z0-9.-]+\\.[A-Za-z]{2,}$'
+    ),
+
+    CONSTRAINT chk_contact_phone_format CHECK (
+        contact_phone REGEXP '^\\+?[0-9]{7,15}$'
+    )
 );
 
 CREATE TABLE travel_tickets (
@@ -139,7 +147,7 @@ CREATE TABLE payments (
     payment_method_id BIGINT UNSIGNED NOT NULL,
     status VARCHAR(20) CHECK (status IN ('successful', 'failed', 'pending')) DEFAULT 'pending',
     transaction_id VARCHAR(100) UNIQUE NOT NULL,
-    currency VARCHAR(10) DEFAULT 'IRR',
+    currency VARCHAR(10) DEFAULT 'IRR' CHECK (currency REGEXP '^[A-Z]{3}$'),
     refund_amount DECIMAL(20) CHECK (refund_amount >= 0) DEFAULT 0,
     payment_details JSON,
     payment_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,

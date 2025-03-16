@@ -171,5 +171,159 @@ class TestDockerCompose(unittest.TestCase):
                 self.assertEqual(retrieved_user["first_name"], user_data["first_name"], "First name mismatch")
                 self.assertEqual(retrieved_user["last_name"], user_data["last_name"], "Last name mismatch")
 
+    def test_insert_and_retrieve_multiple_roles(self):
+        roles_data = []
+        role_test_num = 50
+
+        for _ in range(role_test_num):
+            role_data = {
+                "name": fake.unique.job(),
+                "description": fake.text(),
+                "parent_role_id": None,
+                "status": fake.boolean()
+            }
+            roles_data.append(role_data)
+
+        insert_query = """
+        INSERT INTO roles (name, description, parent_role_id, status)
+        VALUES (%(name)s, %(description)s, %(parent_role_id)s, %(status)s)
+        """
+        
+        connection = pymysql.connect(
+            host=DB_HOST,
+            user=DB_USER,
+            password=DB_PASSWORD,
+            database=DB_NAME,
+            port=DB_PORT,
+            autocommit=True,
+            cursorclass=pymysql.cursors.DictCursor
+        )
+        
+        with connection.cursor() as cursor:
+            cursor.executemany(insert_query, roles_data)
+            
+            for role_data in roles_data:
+                cursor.execute("SELECT * FROM roles WHERE name = %s", (role_data["name"],))
+                retrieved_role = cursor.fetchone()
+                
+                self.assertIsNotNone(retrieved_role, f"Role {role_data['name']} was not inserted correctly")
+                self.assertEqual(retrieved_role["name"], role_data["name"], "Role name mismatch")
+                self.assertEqual(retrieved_role["description"], role_data["description"], "Role description mismatch")
+    
+    def test_insert_and_retrieve_multiple_features(self):
+        features_data = []
+        feature_test_num = 50
+
+        for _ in range(feature_test_num):
+            feature_data = {
+                "name": fake.unique.word(),
+                "description": fake.text()
+            }
+            features_data.append(feature_data)
+
+        insert_query = """
+        INSERT INTO features (name, description)
+        VALUES (%(name)s, %(description)s)
+        """
+        
+        connection = pymysql.connect(
+            host=DB_HOST,
+            user=DB_USER,
+            password=DB_PASSWORD,
+            database=DB_NAME,
+            port=DB_PORT,
+            autocommit=True,
+            cursorclass=pymysql.cursors.DictCursor
+        )
+        
+        with connection.cursor() as cursor:
+            cursor.executemany(insert_query, features_data)
+            
+            for feature_data in features_data:
+                cursor.execute("SELECT * FROM features WHERE name = %s", (feature_data["name"],))
+                retrieved_feature = cursor.fetchone()
+                
+                self.assertIsNotNone(retrieved_feature, f"Feature {feature_data['name']} was not inserted correctly")
+                self.assertEqual(retrieved_feature["name"], feature_data["name"], "Feature name mismatch")
+    
+    def test_insert_and_retrieve_multiple_permissions(self):
+        permissions_data = []
+        permission_test_num = 50
+        permission_types = ['create', 'read', 'update', 'delete']
+
+        for _ in range(permission_test_num):
+            permission_data = {
+                "name": fake.unique.word(),
+                "description": fake.text(),
+                "type": fake.random_element(permission_types),
+                "status": fake.boolean()
+            }
+            permissions_data.append(permission_data)
+
+        insert_query = """
+        INSERT INTO permissions (name, description, type, status)
+        VALUES (%(name)s, %(description)s, %(type)s, %(status)s)
+        """
+        
+        connection = pymysql.connect(
+            host=DB_HOST,
+            user=DB_USER,
+            password=DB_PASSWORD,
+            database=DB_NAME,
+            port=DB_PORT,
+            autocommit=True,
+            cursorclass=pymysql.cursors.DictCursor
+        )
+        
+        with connection.cursor() as cursor:
+            cursor.executemany(insert_query, permissions_data)
+            
+            for permission_data in permissions_data:
+                cursor.execute("SELECT * FROM permissions WHERE name = %s", (permission_data["name"],))
+                retrieved_permission = cursor.fetchone()
+                
+                self.assertIsNotNone(retrieved_permission, f"Permission {permission_data['name']} was not inserted correctly")
+                self.assertEqual(retrieved_permission["name"], permission_data["name"], "Permission name mismatch")
+    
+    def test_insert_and_retrieve_role_permissions(self):
+        connection = pymysql.connect(
+            host=DB_HOST,
+            user=DB_USER,
+            password=DB_PASSWORD,
+            database=DB_NAME,
+            port=DB_PORT,
+            autocommit=True,
+            cursorclass=pymysql.cursors.DictCursor
+        )
+        
+        with connection.cursor() as cursor:
+            cursor.execute("SELECT id FROM roles ORDER BY RAND() LIMIT 10")
+            role_ids = [row['id'] for row in cursor.fetchall()]
+
+            cursor.execute("SELECT id FROM permissions ORDER BY RAND() LIMIT 10")
+            permission_ids = [row['id'] for row in cursor.fetchall()]
+
+        role_permissions_data = []
+        for role_id in role_ids:
+            for permission_id in permission_ids:
+                role_permissions_data.append({
+                    "role_id": role_id,
+                    "permission_id": permission_id
+                })
+
+        insert_query = """
+        INSERT INTO role_permissions (role_id, permission_id)
+        VALUES (%(role_id)s, %(permission_id)s)
+        """
+        
+        with connection.cursor() as cursor:
+            cursor.executemany(insert_query, role_permissions_data)
+            
+            for data in role_permissions_data:
+                cursor.execute("SELECT * FROM role_permissions WHERE role_id = %s AND permission_id = %s", (data["role_id"], data["permission_id"]))
+                retrieved_entry = cursor.fetchone()
+                
+                self.assertIsNotNone(retrieved_entry, f"Role-Permission pair {data['role_id']}-{data['permission_id']} was not inserted correctly")
+
 if __name__ == "__main__":
     unittest.main()

@@ -124,7 +124,7 @@ CREATE TABLE payment_methods (
 );
 
 CREATE TABLE payments (
-    id BIGINT UNSIGNED PRIMARY KEY,
+    id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
     user_id BIGINT UNSIGNED NOT NULL,
     reservation_id BIGINT UNSIGNED NOT NULL,
     amount DECIMAL(20) NOT NULL CHECK (amount >= 0),

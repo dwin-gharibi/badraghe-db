@@ -5,6 +5,7 @@ import time
 import os
 import pymysql
 from faker import Faker
+import random
 
 SQL_FILE = "badrage-migration.sql"
 DB_HOST = "127.0.0.1"
@@ -177,7 +178,7 @@ class TestDockerCompose(unittest.TestCase):
 
         for _ in range(role_test_num):
             role_data = {
-                "name": fake.unique.job(),
+                "name": fake.unique.job()[:40],
                 "description": fake.text(),
                 "parent_role_id": None,
                 "status": fake.boolean()
@@ -491,7 +492,69 @@ class TestDockerCompose(unittest.TestCase):
 
                 self.assertIsNotNone(retrieved_method, f"Payment Method {method_data['name']} was not inserted correctly")
 
-    def test_11_insert_and_retrieve_multiple_payments(self):
+    def test_11_insert_and_retrieve_multiple_user_reservations(self):
+        reservations_data = []
+        reservation_test_num = 50
+        statuses = ['temporary', 'reserved', 'paid', 'canceled']
+        refund_statuses = ['not_requested', 'pending', 'approved', 'denied']
+
+        connection = pymysql.connect(
+            host=DB_HOST,
+            user=DB_USER,
+            password=DB_PASSWORD,
+            database=DB_NAME,
+            port=DB_PORT,
+            autocommit=True,
+            cursorclass=pymysql.cursors.DictCursor
+        )
+
+        with connection.cursor() as cursor:
+            cursor.execute("SELECT id FROM users ORDER BY RAND() LIMIT 10")
+            user_ids = [row['id'] for row in cursor.fetchall()]
+            if not user_ids:
+                cursor.execute("INSERT INTO users (first_name, last_name, email) VALUES (%s, %s, %s)",
+                               (fake.first_name(), fake.last_name(), fake.email()))
+                connection.commit()
+                cursor.execute("SELECT id FROM users ORDER BY RAND() LIMIT 10")
+                user_ids = [row['id'] for row in cursor.fetchall()]
+
+            cursor.execute("SELECT id FROM travel_tickets ORDER BY RAND() LIMIT 10")
+            ticket_ids = [row['id'] for row in cursor.fetchall()]
+            if not ticket_ids:
+                cursor.execute("INSERT INTO travel_tickets (transport_type, departure_city, arrival_city, departure_time, arrival_time, price, currency, available_seats, total_seats, transport_company_id, class_type, status) VALUES (%s, %s, %s, NOW(), NOW() + INTERVAL 5 HOUR, %s, 'IRR', %s, %s, NULL, %s, %s)", 
+                               ("plane", fake.city(), fake.city(), 100, 50, 100, "economy", "available"))
+                connection.commit()
+                cursor.execute("SELECT id FROM travel_tickets ORDER BY RAND() LIMIT 10")
+                ticket_ids = [row['id'] for row in cursor.fetchall()]
+
+        for _ in range(reservation_test_num):
+            reservation_data = {
+                "user_id": fake.random_element(user_ids),
+                "ticket_id": fake.random_element(ticket_ids),
+                "status": fake.random_element(statuses),
+                "price_paid": round(random.uniform(10, 1000), 2),
+                "refund_status": fake.random_element(refund_statuses)
+            }
+            reservations_data.append(reservation_data)
+
+        insert_query = """
+        INSERT INTO user_reservations (user_id, ticket_id, status, price_paid, refund_status)
+        VALUES (%(user_id)s, %(ticket_id)s, %(status)s, %(price_paid)s, %(refund_status)s)
+        """
+
+        with connection.cursor() as cursor:
+            cursor.executemany(insert_query, reservations_data)
+
+            for reservation_data in reservations_data:
+                cursor.execute("SELECT * FROM user_reservations WHERE user_id = %s AND ticket_id = %s", 
+                               (reservation_data["user_id"], reservation_data["ticket_id"]))
+                retrieved_reservation = cursor.fetchone()
+
+                self.assertIsNotNone(retrieved_reservation, f"Reservation for user {reservation_data['user_id']} and ticket {reservation_data['ticket_id']} was not inserted correctly")
+                self.assertEqual(retrieved_reservation["user_id"], reservation_data["user_id"], "User ID mismatch")
+                self.assertEqual(retrieved_reservation["ticket_id"], reservation_data["ticket_id"], "Ticket ID mismatch")
+
+    def test_12_insert_and_retrieve_multiple_payments(self):
         connection = pymysql.connect(
             host=DB_HOST,
             user=DB_USER,
@@ -515,24 +578,24 @@ class TestDockerCompose(unittest.TestCase):
             payments_data = []
             for _ in range(20):
                 payment_data = {
-                    "id": fake.unique.random_int(min=1, max=100000),
                     "user_id": fake.random_element(user_ids),
                     "reservation_id": fake.random_element(reservation_ids),
                     "amount": fake.random_number(digits=5),
                     "payment_method_id": fake.random_element(method_ids),
                     "status": fake.random_element(["successful", "failed", "pending"]),
-                    "transaction_id": fake.uuid4(),
+                    "transaction_id": str(fake.uuid4()),
                     "currency": "IRR",
                     "refund_amount": fake.random_number(digits=3)
                 }
+
                 payments_data.append(payment_data)
 
-                insert_query = """
-                INSERT INTO payments (id, user_id, reservation_id, amount, payment_method_id, status, transaction_id, currency, refund_amount)
-                VALUES (%(id)s, %(user_id)s, %(reservation_id)s, %(amount)s, %(payment_method_id)s, %(status)s, %(transaction_id)s, %(currency)s, %(refund_amount))
-                """
+            insert_query = """
+            INSERT INTO payments (user_id, reservation_id, amount, payment_method_id, status, transaction_id, currency, refund_amount)
+            VALUES (%(user_id)s, %(reservation_id)s, %(amount)s, %(payment_method_id)s, %(status)s, %(transaction_id)s, %(currency)s, %(refund_amount)s)
+            """
 
-                cursor.executemany(insert_query, payments_data)
+            cursor.executemany(insert_query, payments_data)
 
 
 if __name__ == "__main__":

@@ -7,18 +7,18 @@
 
 ![SystemDesign](./assets/Badraghe-systemdesign.jpg)
 
-## Features
+## 🚀 Features
 
 - **Real-Time Booking**: Ensures up-to-date availability and instant confirmations.
 - **Secure Transactions**: Implements robust security protocols to protect user data and payments.
 - **User-Friendly Interface**: Designed for intuitive navigation and ease of use.
 - **Flexible Reservations**: Offers adaptable booking options to cater to diverse user requirements.
 
-## ER Diagram
+## 📋 ER Diagram
 
 ![ERDiagram](./assets/Badraghe-ERD.png)
 
-## Usage and Tests
+## 🪄 Usage and Tests
 
 This project sets up a **MySQL** database using **Docker Compose** and provides a Python test suite *(test.py)* for validating database operations using unittest and pymysql.
 
@@ -95,3 +95,14 @@ This will:
 ![ScreenShot5](./assets/Screenshot5.png)
 
 ![ScreenShot6](./assets/Screenshot6.png)
+
+**The test script** generates realistic but dummy data using the *Faker library.* It creates random user details, travel tickets, reservations, and payments, mimicking real-world data.
+
+Examples of generated data:
+- ✅ **Users:** Names, emails, phone numbers, addresses
+- ✅ **Travel Tickets:** Departure & arrival cities, times, prices, seat availability
+- ✅ **Reservations & Payments:** Booking statuses, transaction IDs
+
+This ensures the database is tested with realistic scenarios while avoiding duplicate or invalid data.
+
+![ScreenShot8](./assets/Screenshot8.png)

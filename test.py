@@ -111,11 +111,11 @@ class TestDockerCompose(unittest.TestCase):
         else:
             print(f"⚠️ SQL file {SQL_FILE} not found, skipping import.")
 
-    def test_containers_up(self):
+    def test_01_containers_up(self):
         for service in ["mysql_server", "phpmyadmin"]:
             self.assertIn(service, self.containers, f"❌ Container {service} not found")
 
-    def test_insert_and_retrieve_multiple_users(self):
+    def test_02_insert_and_retrieve_multiple_users(self):
         users_data = []
         user_test_num = 100
 
@@ -171,7 +171,7 @@ class TestDockerCompose(unittest.TestCase):
                 self.assertEqual(retrieved_user["first_name"], user_data["first_name"], "First name mismatch")
                 self.assertEqual(retrieved_user["last_name"], user_data["last_name"], "Last name mismatch")
 
-    def test_insert_and_retrieve_multiple_roles(self):
+    def test_03_insert_and_retrieve_multiple_roles(self):
         roles_data = []
         role_test_num = 50
 
@@ -210,7 +210,7 @@ class TestDockerCompose(unittest.TestCase):
                 self.assertEqual(retrieved_role["name"], role_data["name"], "Role name mismatch")
                 self.assertEqual(retrieved_role["description"], role_data["description"], "Role description mismatch")
     
-    def test_insert_and_retrieve_multiple_features(self):
+    def test_04_insert_and_retrieve_multiple_features(self):
         features_data = []
         feature_test_num = 50
 
@@ -246,7 +246,7 @@ class TestDockerCompose(unittest.TestCase):
                 self.assertIsNotNone(retrieved_feature, f"Feature {feature_data['name']} was not inserted correctly")
                 self.assertEqual(retrieved_feature["name"], feature_data["name"], "Feature name mismatch")
     
-    def test_insert_and_retrieve_multiple_permissions(self):
+    def test_05_insert_and_retrieve_multiple_permissions(self):
         permissions_data = []
         permission_test_num = 50
         permission_types = ['create', 'read', 'update', 'delete']
@@ -285,7 +285,7 @@ class TestDockerCompose(unittest.TestCase):
                 self.assertIsNotNone(retrieved_permission, f"Permission {permission_data['name']} was not inserted correctly")
                 self.assertEqual(retrieved_permission["name"], permission_data["name"], "Permission name mismatch")
     
-    def test_insert_and_retrieve_role_permissions(self):
+    def test_06_insert_and_retrieve_role_permissions(self):
         connection = pymysql.connect(
             host=DB_HOST,
             user=DB_USER,
@@ -324,6 +324,216 @@ class TestDockerCompose(unittest.TestCase):
                 retrieved_entry = cursor.fetchone()
                 
                 self.assertIsNotNone(retrieved_entry, f"Role-Permission pair {data['role_id']}-{data['permission_id']} was not inserted correctly")
+    
+    def test_07_insert_and_retrieve_multiple_user_roles(self):
+        connection = pymysql.connect(
+            host=DB_HOST,
+            user=DB_USER,
+            password=DB_PASSWORD,
+            database=DB_NAME,
+            port=DB_PORT,
+            autocommit=True,
+            cursorclass=pymysql.cursors.DictCursor
+        )
+
+        with connection.cursor() as cursor:
+            cursor.execute("SELECT id FROM users ORDER BY RAND() LIMIT 10")
+            user_ids = [row['id'] for row in cursor.fetchall()]
+
+            cursor.execute("SELECT id FROM roles ORDER BY RAND() LIMIT 10")
+            role_ids = [row['id'] for row in cursor.fetchall()]
+
+        user_roles_data = []
+        for user_id in user_ids:
+            for role_id in role_ids:
+                user_roles_data.append({
+                    "user_id": user_id,
+                    "role_id": role_id
+                })
+
+        insert_query = """
+        INSERT INTO user_role (user_id, role_id)
+        VALUES (%(user_id)s, %(role_id)s)
+        """
+
+        with connection.cursor() as cursor:
+            cursor.executemany(insert_query, user_roles_data)
+
+            for data in user_roles_data:
+                cursor.execute("SELECT * FROM user_role WHERE user_id = %s AND role_id = %s", (data["user_id"], data["role_id"]))
+                retrieved_entry = cursor.fetchone()
+
+                self.assertIsNotNone(retrieved_entry, f"User-Role pair {data['user_id']}-{data['role_id']} was not inserted correctly")
+
+    def test_08_insert_and_retrieve_multiple_service_providers(self):
+        providers_data = []
+        provider_test_num = 50
+
+        for _ in range(provider_test_num):
+            provider_data = {
+                "name": fake.unique.company(),
+                "contact_email": fake.email(),
+                "contact_phone": fake.unique.numerify(text="###############"),
+                "address": fake.address(),
+                "website_url": fake.url()
+            }
+            providers_data.append(provider_data)
+
+        insert_query = """
+        INSERT INTO service_providers (name, contact_email, contact_phone, address, website_url)
+        VALUES (%(name)s, %(contact_email)s, %(contact_phone)s, %(address)s, %(website_url)s)
+        """
+
+        connection = pymysql.connect(
+            host=DB_HOST,
+            user=DB_USER,
+            password=DB_PASSWORD,
+            database=DB_NAME,
+            port=DB_PORT,
+            autocommit=True,
+            cursorclass=pymysql.cursors.DictCursor
+        )
+
+        with connection.cursor() as cursor:
+            cursor.executemany(insert_query, providers_data)
+
+            for provider_data in providers_data:
+                cursor.execute("SELECT * FROM service_providers WHERE name = %s", (provider_data["name"],))
+                retrieved_provider = cursor.fetchone()
+
+                self.assertIsNotNone(retrieved_provider, f"Service Provider {provider_data['name']} was not inserted correctly")
+
+    def test_09_insert_and_retrieve_multiple_travel_tickets(self):
+        connection = pymysql.connect(
+            host=DB_HOST,
+            user=DB_USER,
+            password=DB_PASSWORD,
+            database=DB_NAME,
+            port=DB_PORT,
+            autocommit=True,
+            cursorclass=pymysql.cursors.DictCursor
+        )
+
+        with connection.cursor() as cursor:
+            cursor.execute("SELECT id FROM service_providers ORDER BY RAND() LIMIT 10")
+            provider_ids = [row['id'] for row in cursor.fetchall()]
+
+        tickets_data = []
+        ticket_test_num = 50
+        transport_types = ['plane', 'train', 'bus']
+        class_types = ['economy', 'business', 'VIP']
+        statuses = ['available', 'sold_out', 'canceled']
+
+        for _ in range(ticket_test_num):
+            ticket_data = {
+                "transport_type": fake.random_element(transport_types),
+                "departure_city": fake.city(),
+                "arrival_city": fake.city(),
+                "departure_time": fake.date_time_this_year().isoformat(),
+                "arrival_time": fake.date_time_this_year().isoformat(),
+                "price": fake.random_number(digits=5),
+                "currency": "IRR",
+                "available_seats": fake.random_int(min=0, max=100),
+                "total_seats": fake.random_int(min=1, max=100),
+                "transport_company_id": fake.random_element(provider_ids) if provider_ids else None,
+                "class_type": fake.random_element(class_types),
+                "status": fake.random_element(statuses)
+            }
+            tickets_data.append(ticket_data)
+
+        insert_query = """
+        INSERT INTO travel_tickets (transport_type, departure_city, arrival_city, departure_time, arrival_time, price, currency, available_seats, total_seats, transport_company_id, class_type, status)
+        VALUES (%(transport_type)s, %(departure_city)s, %(arrival_city)s, %(departure_time)s, %(arrival_time)s, %(price)s, %(currency)s, %(available_seats)s, %(total_seats)s, %(transport_company_id)s, %(class_type)s, %(status)s)
+        """
+
+        with connection.cursor() as cursor:
+            cursor.executemany(insert_query, tickets_data)
+
+            for ticket_data in tickets_data:
+                cursor.execute("SELECT * FROM travel_tickets WHERE departure_city = %s AND arrival_city = %s", (ticket_data["departure_city"], ticket_data["arrival_city"]))
+                retrieved_ticket = cursor.fetchone()
+
+                self.assertIsNotNone(retrieved_ticket, f"Travel Ticket from {ticket_data['departure_city']} to {ticket_data['arrival_city']} was not inserted correctly")
+
+    def test_10_insert_and_retrieve_multiple_payment_methods(self):
+        payment_methods_data = []
+        method_test_num = 10
+
+        for _ in range(method_test_num):
+            method_data = {
+                "name": fake.unique.word(),
+                "description": fake.text(),
+                "is_active": fake.boolean()
+            }
+            payment_methods_data.append(method_data)
+
+        insert_query = """
+        INSERT INTO payment_methods (name, description, is_active)
+        VALUES (%(name)s, %(description)s, %(is_active)s)
+        """
+
+        connection = pymysql.connect(
+            host=DB_HOST,
+            user=DB_USER,
+            password=DB_PASSWORD,
+            database=DB_NAME,
+            port=DB_PORT,
+            autocommit=True,
+            cursorclass=pymysql.cursors.DictCursor
+        )
+
+        with connection.cursor() as cursor:
+            cursor.executemany(insert_query, payment_methods_data)
+
+            for method_data in payment_methods_data:
+                cursor.execute("SELECT * FROM payment_methods WHERE name = %s", (method_data["name"],))
+                retrieved_method = cursor.fetchone()
+
+                self.assertIsNotNone(retrieved_method, f"Payment Method {method_data['name']} was not inserted correctly")
+
+    def test_11_insert_and_retrieve_multiple_payments(self):
+        connection = pymysql.connect(
+            host=DB_HOST,
+            user=DB_USER,
+            password=DB_PASSWORD,
+            database=DB_NAME,
+            port=DB_PORT,
+            autocommit=True,
+            cursorclass=pymysql.cursors.DictCursor
+        )
+
+        with connection.cursor() as cursor:
+            cursor.execute("SELECT id FROM users ORDER BY RAND() LIMIT 10")
+            user_ids = [row['id'] for row in cursor.fetchall()]
+
+            cursor.execute("SELECT id FROM user_reservations ORDER BY RAND() LIMIT 10")
+            reservation_ids = [row['id'] for row in cursor.fetchall()]
+
+            cursor.execute("SELECT id FROM payment_methods ORDER BY RAND() LIMIT 10")
+            method_ids = [row['id'] for row in cursor.fetchall()]
+
+            payments_data = []
+            for _ in range(20):
+                payment_data = {
+                    "id": fake.unique.random_int(min=1, max=100000),
+                    "user_id": fake.random_element(user_ids),
+                    "reservation_id": fake.random_element(reservation_ids),
+                    "amount": fake.random_number(digits=5),
+                    "payment_method_id": fake.random_element(method_ids),
+                    "status": fake.random_element(["successful", "failed", "pending"]),
+                    "transaction_id": fake.uuid4(),
+                    "currency": "IRR",
+                    "refund_amount": fake.random_number(digits=3)
+                }
+                payments_data.append(payment_data)
+
+                insert_query = """
+                INSERT INTO payments (id, user_id, reservation_id, amount, payment_method_id, status, transaction_id, currency, refund_amount)
+                VALUES (%(id)s, %(user_id)s, %(reservation_id)s, %(amount)s, %(payment_method_id)s, %(status)s, %(transaction_id)s, %(currency)s, %(refund_amount))
+                """
+
+                cursor.executemany(insert_query, payments_data)
+
 
 if __name__ == "__main__":
     unittest.main()

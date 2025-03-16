@@ -19,7 +19,15 @@ CREATE TABLE users (
     preferences JSON DEFAULT ('{}'),
     last_login TIMESTAMP NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+
+    CONSTRAINT chk_email_format CHECK (
+        email REGEXP '^[A-Za-z0-9._-]+@[A-Za-z0-9.-]+\\.[A-Za-z]{2,}$'
+    ),
+
+    CONSTRAINT chk_phone_format CHECK (
+        phone REGEXP '^\\+?[0-9]{7,15}$'
+    )
 );
 
 CREATE TABLE roles (

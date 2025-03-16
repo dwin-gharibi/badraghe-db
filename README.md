@@ -30,8 +30,10 @@ Make sure you have the following installed:
 - ✅ **Python (>=3.8) → For running test scripts**
 - ✅ **pip → For installing dependencies**
 
+You can both run **docker compose** manually or use the **python test script** to set up the test environment and add dummy data!
+
 ## 🚀 Setup & Usage
-### 1️⃣ Start MySQL & phpMyAdmin using Docker
+### 1️⃣ Start MySQL & phpMyAdmin using Docker (Optional)
 Run the following command in the project directory:
 
 ```bash docker docker
@@ -57,7 +59,7 @@ docker exec -i mysql_server mysql -uuser -ppassword badrage_database < badrage-m
 
 **This will create all necessary tables.**
 
-## 🔬 Running Tests (test.py)
+## 🔬 Running Tests using python script (test.py)
 ### 1️⃣ Install Python Dependencies
 
 First, install required packages:

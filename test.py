@@ -4,6 +4,7 @@ import docker
 import time
 import os
 import pymysql
+from faker import Faker
 
 SQL_FILE = "badrage-migration.sql"
 DB_HOST = "127.0.0.1"
@@ -11,6 +12,8 @@ DB_PORT = 3306
 DB_USER = "user"
 DB_PASSWORD = "password"
 DB_NAME = "badrage_database"
+
+fake = Faker()
 
 class TestDockerCompose(unittest.TestCase):
     @classmethod
@@ -111,6 +114,62 @@ class TestDockerCompose(unittest.TestCase):
     def test_containers_up(self):
         for service in ["mysql_server", "phpmyadmin"]:
             self.assertIn(service, self.containers, f"❌ Container {service} not found")
+
+    def test_insert_and_retrieve_multiple_users(self):
+        users_data = []
+        user_test_num = 100
+
+        for _ in range(user_test_num):
+            user_data = {
+                "first_name": fake.first_name(),
+                "last_name": fake.last_name(),
+                "email": fake.unique.email(),
+                "phone": fake.unique.numerify(text="###############"),
+                "password": fake.password(),
+                "country": fake.country(),
+                "state": fake.state(),
+                "city": fake.city(),
+                "address": fake.address(),
+                "zip_code": fake.zipcode(),
+                "date_of_birth": fake.date_of_birth(minimum_age=18, maximum_age=80).isoformat(),
+                "gender": fake.random_element(["male", "female", "other"]),
+                "profile_picture_url": fake.image_url(),
+                "status": fake.boolean(),
+                "is_verified": fake.boolean(),
+                "bio": fake.text(),
+                "preferences": '{}'
+            }
+            users_data.append(user_data)
+
+        insert_query = """
+        INSERT INTO users (first_name, last_name, email, phone, password, country, state, city, address, zip_code,
+        date_of_birth, gender, profile_picture_url, status, is_verified, bio, preferences)
+        VALUES (%(first_name)s, %(last_name)s, %(email)s, %(phone)s, %(password)s, %(country)s, %(state)s, %(city)s,
+        %(address)s, %(zip_code)s, %(date_of_birth)s, %(gender)s, %(profile_picture_url)s, %(status)s, %(is_verified)s,
+        %(bio)s, %(preferences)s)
+        """
+
+        connection = pymysql.connect(
+                    host=DB_HOST,
+                    user=DB_USER,
+                    password=DB_PASSWORD,
+                    database=DB_NAME,
+                    port=DB_PORT,
+                    autocommit=True,
+                    cursorclass=pymysql.cursors.DictCursor
+                )
+
+        with connection.cursor() as cursor:
+            cursor.executemany(insert_query, users_data)
+
+            for user_data in users_data:
+                cursor.execute("SELECT * FROM users WHERE email = %s", (user_data["email"],))
+                retrieved_user = cursor.fetchone()
+
+                self.assertIsNotNone(retrieved_user, f"User with email {user_data['email']} was not inserted correctly")
+                self.assertEqual(retrieved_user["email"], user_data["email"], "Retrieved email does not match")
+                self.assertEqual(retrieved_user["first_name"], user_data["first_name"], "First name mismatch")
+                self.assertEqual(retrieved_user["last_name"], user_data["last_name"], "Last name mismatch")
 
 if __name__ == "__main__":
     unittest.main()

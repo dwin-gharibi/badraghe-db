@@ -20,9 +20,6 @@
 
 ## Usage and Tests
 
-
-![ERDiagram](./assets/Badraghe-ERD.png)
-
 This project sets up a **MySQL** database using **Docker Compose** and provides a Python test suite *(test.py)* for validating database operations using unittest and pymysql.
 
 ## 📦 Prerequisites

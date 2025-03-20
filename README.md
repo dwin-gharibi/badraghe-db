@@ -1,4 +1,4 @@
-# Badraghe
+# Badraghe (A clone of main project in [Hamgit/badraghe](https://hamgit.ir/dngi2005/badraghe))
 
 ![Badraghe Logo](./assets/badraghe-logo.png)
 
